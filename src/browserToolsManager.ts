@@ -2,7 +2,7 @@
  * @Author: chenjie chenjie@huimei.com
  * @Date: 2025-08-25 19:20:08
  * @LastEditors: chenjie chenjie@huimei.com
- * @LastEditTime: 2025-09-05 13:45:28
+ * @LastEditTime: 2025-09-05 20:45:23
  * @FilePath: /browser-tools-extension/src/browserToolsManager.ts
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -98,13 +98,21 @@ export class BrowserToolsManager implements vscode.Disposable {
                 }
             }
             
-            // 检测现有配置格式并使用相同格式
-            const usesMcpServers = mcpConfig.mcpServers && !mcpConfig.mcp;
+            // 检测现有配置格式并清理重复配置
+            const hasMcpServers = mcpConfig.mcpServers && Object.keys(mcpConfig.mcpServers).length > 0;
+            const hasMcp = mcpConfig.mcp && Object.keys(mcpConfig.mcp).length > 0;
             
-            if (usesMcpServers) {
-                // 使用 mcpServers 格式
+            // 优先使用 mcpServers 格式（Cursor的新格式）
+            if (hasMcpServers) {
+                // 使用 mcpServers 格式，清理 mcp 中的重复配置
                 if (!mcpConfig.mcpServers) {
                     mcpConfig.mcpServers = {};
+                }
+                
+                // 清理 mcp 字段中的 browser-tools 配置（如果存在）
+                if (mcpConfig.mcp && mcpConfig.mcp['browser-tools']) {
+                    delete mcpConfig.mcp['browser-tools'];
+                    this.logger.log('已清理 mcp 字段中的重复 browser-tools 配置');
                 }
                 
                 // 使用require.resolve获取MCP脚本路径
@@ -128,9 +136,15 @@ export class BrowserToolsManager implements vscode.Disposable {
                     };
                 }
             } else {
-                // 使用 mcp 格式
+                // 使用 mcp 格式，清理 mcpServers 中的重复配置
                 if (!mcpConfig.mcp) {
                     mcpConfig.mcp = {};
+                }
+                
+                // 清理 mcpServers 字段中的 browser-tools 配置（如果存在）
+                if (mcpConfig.mcpServers && mcpConfig.mcpServers['browser-tools']) {
+                    delete mcpConfig.mcpServers['browser-tools'];
+                    this.logger.log('已清理 mcpServers 字段中的重复 browser-tools 配置');
                 }
                 
                 // 使用require.resolve获取MCP脚本路径
@@ -159,7 +173,12 @@ export class BrowserToolsManager implements vscode.Disposable {
             fs.writeFileSync(this.mcpConfigPath, JSON.stringify(mcpConfig, null, 2));
             
             this.logger.log(`✅ MCP配置已更新: ${this.mcpConfigPath}`);
-            this.logger.log(`配置内容: ${JSON.stringify(mcpConfig.mcp['browser-tools'], null, 2)}`);
+            
+            // 根据实际使用的格式输出配置内容
+            const browserToolsConfig = mcpConfig.mcpServers?.['browser-tools'] || mcpConfig.mcp?.['browser-tools'];
+            if (browserToolsConfig) {
+                this.logger.log(`配置内容: ${JSON.stringify(browserToolsConfig, null, 2)}`);
+            }
             
             return true;
             
@@ -479,14 +498,22 @@ export class BrowserToolsManager implements vscode.Disposable {
                 return false;
             }
             
-            // 检测现有配置格式并使用相同格式
-            const usesMcpServers = mcpConfig.mcpServers && !mcpConfig.mcp;
+            // 检测现有配置格式并清理重复配置
+            const hasMcpServers = mcpConfig.mcpServers && Object.keys(mcpConfig.mcpServers).length > 0;
             
-            if (usesMcpServers) {
-                // 使用 mcpServers 格式
+            // 优先使用 mcpServers 格式（Cursor的新格式）
+            if (hasMcpServers) {
+                // 使用 mcpServers 格式，清理 mcp 中的重复配置
                 if (!mcpConfig.mcpServers) {
                     mcpConfig.mcpServers = {};
                 }
+                
+                // 清理 mcp 字段中的 browser-tools 配置（如果存在）
+                if (mcpConfig.mcp && mcpConfig.mcp['browser-tools']) {
+                    delete mcpConfig.mcp['browser-tools'];
+                    this.logger.log('已清理 mcp 字段中的重复 browser-tools 配置');
+                }
+                
                 mcpConfig.mcpServers['browser-tools'] = {
                     command: 'node',
                     args: [mcpScript, '--port', this.serverPort.toString()],
@@ -495,10 +522,17 @@ export class BrowserToolsManager implements vscode.Disposable {
                     }
                 };
             } else {
-                // 使用 mcp 格式
+                // 使用 mcp 格式，清理 mcpServers 中的重复配置
                 if (!mcpConfig.mcp) {
                     mcpConfig.mcp = {};
                 }
+                
+                // 清理 mcpServers 字段中的 browser-tools 配置（如果存在）
+                if (mcpConfig.mcpServers && mcpConfig.mcpServers['browser-tools']) {
+                    delete mcpConfig.mcpServers['browser-tools'];
+                    this.logger.log('已清理 mcpServers 字段中的重复 browser-tools 配置');
+                }
+                
                 mcpConfig.mcp['browser-tools'] = {
                     command: 'node',
                     args: [mcpScript, '--port', this.serverPort.toString()],
@@ -1175,21 +1209,17 @@ cat "${this.mcpConfigPath}"
             
             // 创建MCP配置
             const mcpScript = this.getMcpScriptPath();
-            const mcpConfig = {
-                mcp: {
-                    "browser-tools": mcpScript ? {
-                        command: "node",
-                        args: [mcpScript, "--port", this.serverPort.toString()],
-                        env: {
-                            NODE_ENV: "production"
-                        }
-                    } : {
-                        command: "npx",
-                        args: ["-y", "@agentdeskai/browser-tools-mcp@1.2.0", "--port", this.serverPort.toString()],
-                        env: {
-                            NODE_ENV: "production"
-                        }
-                    }
+            const browserToolsConfig = mcpScript ? {
+                command: "node",
+                args: [mcpScript, "--port", this.serverPort.toString()],
+                env: {
+                    NODE_ENV: "production"
+                }
+            } : {
+                command: "npx",
+                args: ["-y", "@agentdeskai/browser-tools-mcp@1.2.0", "--port", this.serverPort.toString()],
+                env: {
+                    NODE_ENV: "production"
                 }
             };
             
@@ -1197,16 +1227,48 @@ cat "${this.mcpConfigPath}"
             if (fs.existsSync(this.mcpConfigPath)) {
                 try {
                     const existingConfig = JSON.parse(fs.readFileSync(this.mcpConfigPath, 'utf8'));
-                    if (!existingConfig.mcp) {
-                        existingConfig.mcp = {};
+                    
+                    // 检测现有配置格式并清理重复配置
+                    const hasMcpServers = existingConfig.mcpServers && Object.keys(existingConfig.mcpServers).length > 0;
+                    
+                    if (hasMcpServers) {
+                        // 使用 mcpServers 格式，清理 mcp 中的重复配置
+                        if (!existingConfig.mcpServers) {
+                            existingConfig.mcpServers = {};
+                        }
+                        
+                        // 清理 mcp 字段中的 browser-tools 配置（如果存在）
+                        if (existingConfig.mcp && existingConfig.mcp['browser-tools']) {
+                            delete existingConfig.mcp['browser-tools'];
+                            this.logger.log('已清理 mcp 字段中的重复 browser-tools 配置');
+                        }
+                        
+                        existingConfig.mcpServers["browser-tools"] = browserToolsConfig;
+                    } else {
+                        // 使用 mcp 格式，清理 mcpServers 中的重复配置
+                        if (!existingConfig.mcp) {
+                            existingConfig.mcp = {};
+                        }
+                        
+                        // 清理 mcpServers 字段中的 browser-tools 配置（如果存在）
+                        if (existingConfig.mcpServers && existingConfig.mcpServers['browser-tools']) {
+                            delete existingConfig.mcpServers['browser-tools'];
+                            this.logger.log('已清理 mcpServers 字段中的重复 browser-tools 配置');
+                        }
+                        
+                        existingConfig.mcp["browser-tools"] = browserToolsConfig;
                     }
-                    existingConfig.mcp["browser-tools"] = mcpConfig.mcp["browser-tools"];
+                    
                     fs.writeFileSync(this.mcpConfigPath, JSON.stringify(existingConfig, null, 2));
                 } catch (parseError) {
                     this.logger.warn('现有MCP配置文件格式错误，将创建新配置');
+                    // 创建默认的 mcp 格式配置
+                    const mcpConfig = { mcp: { "browser-tools": browserToolsConfig } };
                     fs.writeFileSync(this.mcpConfigPath, JSON.stringify(mcpConfig, null, 2));
                 }
             } else {
+                // 创建默认的 mcp 格式配置
+                const mcpConfig = { mcp: { "browser-tools": browserToolsConfig } };
                 fs.writeFileSync(this.mcpConfigPath, JSON.stringify(mcpConfig, null, 2));
             }
             
@@ -1500,13 +1562,35 @@ cat "${this.mcpConfigPath}"
      * 检查MCP是否运行
      */
     private async isMcpRunning(): Promise<boolean> {
-        if (!fs.existsSync(this.mcpPidFile)) {
-            return false;
+        // 首先检查PID文件
+        if (fs.existsSync(this.mcpPidFile)) {
+            try {
+                const pid = parseInt(fs.readFileSync(this.mcpPidFile, 'utf8'));
+                if (this.processManager.isProcessRunning(pid)) {
+                    return true;
+                }
+            } catch {
+                // PID文件损坏，继续使用进程名检测
+            }
         }
         
+        // 如果PID文件不存在或进程不存在，通过进程名检测
         try {
-            const pid = parseInt(fs.readFileSync(this.mcpPidFile, 'utf8'));
-            return this.processManager.isProcessRunning(pid);
+            const result = child_process.execSync('ps -ef | grep browser-tools-mcp | grep -v grep', { 
+                encoding: 'utf8',
+                stdio: 'pipe'
+            });
+            
+            // 检查是否有实际的MCP服务进程（不是npm exec进程）
+            const lines = result.trim().split('\n');
+            for (const line of lines) {
+                if (line.includes('node /usr/local/bin/browser-tools-mcp') || 
+                    line.includes('browser-tools-mcp --port')) {
+                    return true;
+                }
+            }
+            
+            return false;
         } catch {
             return false;
         }
