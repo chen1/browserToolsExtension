@@ -1,0 +1,118 @@
+{
+  "name": "browser-tools-manager",
+  "displayName": "Browser Tools Manager",
+  "description": "在Cursor中管理browser-tools服务的扩展，支持启动、停止和监控服务状态",
+  "version": "1.1.0",
+  "publisher": "browser-tools-manager",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/browser-tools-manager.git"
+  },
+  "engines": {
+    "vscode": "^1.74.0",
+    "node": ">=18.0.0"
+  },
+  "categories": [
+    "Other",
+    "AI",
+    "Development Tools"
+  ],
+  "keywords": [
+    "browser-tools",
+    "ai",
+    "development",
+    "mcp",
+    "chrome-debugging"
+  ],
+  "activationEvents": [
+    "*"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "browser-tools.start",
+        "title": "启动 Browser Tools 服务",
+        "category": "Browser Tools"
+      },
+      {
+        "command": "browser-tools.stop",
+        "title": "停止 Browser Tools 服务",
+        "category": "Browser Tools"
+      },
+      {
+        "command": "browser-tools.restart",
+        "title": "重启 Browser Tools 服务",
+        "category": "Browser Tools"
+      },
+      {
+        "command": "browser-tools.status",
+        "title": "查看 Browser Tools 状态",
+        "category": "Browser Tools"
+      },
+      {
+        "command": "browser-tools.logs",
+        "title": "查看详细日志",
+        "category": "Browser Tools"
+      },
+      {
+        "command": "browser-tools.clearLogs",
+        "title": "清理日志",
+        "category": "Browser Tools"
+      },
+      {
+        "command": "browser-tools.diagnoseMcp",
+        "title": "诊断MCP连接",
+        "category": "Browser Tools"
+      },
+      {
+        "command": "browser-tools.configureMcp",
+        "title": "配置MCP设置",
+        "category": "Browser Tools"
+      }
+    ],
+    "configuration": {
+      "title": "Browser Tools Manager",
+      "properties": {
+        "browserTools.serverPort": {
+          "type": "number",
+          "default": 3025,
+          "description": "Browser Tools 服务器端口"
+        },
+        "browserTools.logFile": {
+          "type": "string",
+          "default": "/tmp/browser-tools.log",
+          "description": "日志文件路径"
+        },
+        "browserTools.chromeDebugPort": {
+          "type": "number",
+          "default": 9222,
+          "description": "Chrome 远程调试端口"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "package": "npm run compile && node scripts/create-vsix.js",
+    "build": "npm run compile"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "@types/vscode": "^1.74.0",
+    "@typescript-eslint/eslint-plugin": "^5.0.0",
+    "@typescript-eslint/parser": "^5.0.0",
+    "eslint": "^8.0.0",
+    "typescript": "^4.9.0"
+  },
+  "dependencies": {
+    "@agentdeskai/browser-tools-mcp": "^1.2.0",
+    "@agentdeskai/browser-tools-server": "^1.2.0",
+    "archiver": "^7.0.1"
+  }
+}
